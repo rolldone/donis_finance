@@ -120,6 +120,13 @@ func New(opts Options) (*App, error) {
 		// If we have patterns, use AllowOriginFunc to dynamically validate origins.
 		if len(patterns) > 0 {
 			corsCfg.AllowOriginFunc = func(origin string) bool {
+				// Wildcard "*" allows all origins
+				for _, p := range patterns {
+					if p == "*" {
+						return true
+					}
+				}
+
 				// Exact match check first
 				for _, e := range exactOrigins {
 					if origin == e {
@@ -136,7 +143,7 @@ func New(opts Options) (*App, error) {
 
 				for _, p := range patterns {
 					p = strings.TrimSpace(p)
-					if p == "" {
+					if p == "" || p == "*" {
 						continue
 					}
 
@@ -185,8 +192,15 @@ func New(opts Options) (*App, error) {
 
 		r.Use(cors.New(corsCfg))
 	} else {
-		// Fallback to a sensible default (allow commonly used origins during development)
-		r.Use(cors.Default())
+		// Default: allow all origins (CORS_ALLOWED_ORIGINS not set)
+		r.Use(cors.New(cors.Config{
+			AllowAllOrigins:  true,
+			AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}))
 	}
 	root := r.Group("")
 

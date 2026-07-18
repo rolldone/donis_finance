@@ -5,6 +5,25 @@
 
 ---
 
+## Referensi Variable
+
+Dokumen ini menggunakan variable placeholder untuk menggantikan data sensitif. Ganti dengan nilai sesuai lingkungan kamu.
+
+| Variable | Deskripsi | Contoh Nilai |
+|----------|-----------|-------------|
+| `{{BASE_URL}}` | URL aplikasi | `http://192.168.1.100:8200` |
+| `{{SERVER_IP}}` | IP Address server | `192.168.1.100` |
+| `{{ADMIN_USERNAME}}` | Username admin | `admin` |
+| `{{ADMIN_PASSWORD}}` | Password admin | `pilih_password_kuat` |
+| `{{ADMIN_EMAIL}}` | Email admin | `admin@example.com` |
+| `{{MEMBER_USERNAME}}` | Username anggota | `nama_anggota` |
+| `{{MEMBER_PASSWORD}}` | Password anggota | `pilih_password_kuat` |
+| `{{MEMBER_EMAIL}}` | Email anggota | `anggota@example.com` |
+| `{{MEMBER_NAME}}` | Nama lengkap anggota | `Nama Anggota` |
+| `{{FROM_EMAIL}}` | Email pengirim | `noreply@example.com` |
+
+---
+
 ## 📖 Daftar Isi
 
 1. [Mengenal Donis Finance](#mengenal-donis-finance)

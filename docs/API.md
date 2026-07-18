@@ -5,6 +5,28 @@
 
 ---
 
+## Variable Reference
+
+Dokumen ini menggunakan variable placeholder untuk menggantikan data sensitif. Ganti dengan nilai sesuai lingkungan kamu sebelum menggunakan contoh.
+
+| Variable | Deskripsi | Contoh Nilai |
+|----------|-----------|-------------|
+| `{{BASE_URL}}` | Base URL server | `http://192.168.1.100:8200` |
+| `{{SERVER_IP}}` | IP Address server | `192.168.1.100` |
+| `{{ADMIN_USERNAME}}` | Username admin | `admin` |
+| `{{ADMIN_PASSWORD}}` | Password admin | `pilih_password_kuat` |
+| `{{ADMIN_EMAIL}}` | Email admin | `admin@example.com` |
+| `{{MEMBER_USERNAME}}` | Username anggota | `nama_anggota` |
+| `{{MEMBER_PASSWORD}}` | Password anggota | `pilih_password_kuat` |
+| `{{MEMBER_EMAIL}}` | Email anggota | `anggota@example.com` |
+| `{{MEMBER_NAME}}` | Nama lengkap anggota | `Nama Anggota` |
+| `{{FROM_EMAIL}}` | Email pengirim (SMTP) | `noreply@example.com` |
+| `{{SMTP_USER}}` | Username SMTP | `smtp_user` |
+| `{{SMTP_PASS}}` | Password SMTP | `smtp_password` |
+| `{{SMTP_HOST}}` | Host SMTP | `smtp.example.com` |
+
+---
+
 ## Authentication
 
 All protected endpoints require a JWT token in the `Authorization` header:

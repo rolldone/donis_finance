@@ -91,7 +91,7 @@ export default function Budget() {
         {/* Summary */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <Skeleton.Base className="h-4 w-36 mb-4" />
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><Skeleton.Base className="h-3 w-20 mb-2" /><Skeleton.Base className="h-6 w-28" /></div>
             <div><Skeleton.Base className="h-3 w-20 mb-2" /><Skeleton.Base className="h-6 w-28" /></div>
             <div><Skeleton.Base className="h-3 w-12 mb-2" /><Skeleton.Base className="h-6 w-28" /></div>
@@ -162,11 +162,11 @@ export default function Budget() {
               </div>
 
               {/* Stats */}
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">
+              <div className="flex items-center justify-between text-sm gap-2">
+                <span className="text-gray-500 truncate">
                   {formatCurrency(budget.spent || 0)} / {formatCurrency(budget.amount || 0)}
                 </span>
-                <span className={`font-medium ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
+                <span className={`font-medium whitespace-nowrap ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
                   {percent}%
                 </span>
               </div>
@@ -186,7 +186,7 @@ export default function Budget() {
       {/* Summary */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('budget.summary')}</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <p className="text-xs text-gray-400">{t('budget.total_budget')}</p>
             <p className="text-lg font-bold text-gray-900">{formatCurrency(totalBudget)}</p>

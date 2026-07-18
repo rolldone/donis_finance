@@ -1,0 +1,13 @@
+Registrasi Berhasil
+
+Halo {{.Name}},
+
+Terima kasih telah mendaftar di donis_finance!
+
+Akun Anda saat ini berstatus menunggu persetujuan dari admin. Anda akan menerima email lagi setelah akun diaktivasi.
+
+Username Anda: {{.Username}}
+
+Jika ada pertanyaan, silakan hubungi administrator.
+
+— donis_finance

@@ -4,6 +4,11 @@ import { getAdminProfile, updateAdminProfile, changeAdminPassword, getMembers, e
 import type { SMTPConfig } from '../../api'
 import Skeleton from '../../components/Skeleton'
 
+const INIT_SMTP: SMTPConfig = {
+  host: '', port: '', user: '', pass: '', from_email: '', from_name: '',
+  use_tls: false, use_starttls: false, skip_verify: false,
+}
+
 export default function Settings() {
   const { t } = useTranslation()
   const [profile, setProfile] = useState<any>(null)
@@ -17,10 +22,8 @@ export default function Settings() {
   const [success, setSuccess] = useState('')
 
   // SMTP
-  const [smtp, setSmtp] = useState<SMTPConfig>({
-    host: '', port: '', user: '', pass: '', from_email: '', from_name: '',
-    use_tls: false, use_starttls: false, skip_verify: false,
-  })
+  const [smtp, setSmtp] = useState<SMTPConfig>(INIT_SMTP)
+  const [notifEmail, setNotifEmail] = useState('')
   const [envSmtp, setEnvSmtp] = useState<SMTPConfig | null>(null)
   const [smtpOverridden, setSmtpOverridden] = useState(false)
   const [showEnvSmtp, setShowEnvSmtp] = useState(false)
@@ -60,9 +63,10 @@ export default function Settings() {
     fetchProfile()
     getMembers().then(res => setMembers(res.members || [])).catch(() => {})
     getAdminSMTPConfig().then(res => {
-      if (res.smtp) setSmtp({ ...smtp, ...res.smtp })
+      if (res.smtp) setSmtp({ ...INIT_SMTP, ...res.smtp })
       if (res.env_smtp) setEnvSmtp(res.env_smtp)
       setSmtpOverridden(res.override)
+      setNotifEmail(res.notif_email || '')
     }).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -138,11 +142,12 @@ export default function Settings() {
     setSmtpErr('')
     setSmtpMsg('')
     try {
-      const res = await saveAdminSMTPConfig(smtp)
+      const res = await saveAdminSMTPConfig({ ...smtp, notif_email: notifEmail })
       setSmtpMsg(res.message)
       if (res.smtp) setSmtp({ ...smtp, ...res.smtp })
       if (res.env_smtp) setEnvSmtp(res.env_smtp)
       setSmtpOverridden(res.override)
+      setNotifEmail(res.notif_email || '')
     } catch (err: any) {
       setSmtpErr(err.message)
     } finally {
@@ -406,6 +411,21 @@ export default function Settings() {
               />
             </div>
           </div>
+
+          {/* Notification Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">
+              📬 Notification Email <span className="text-gray-400 font-normal">(admin notified on new member registration)</span>
+            </label>
+            <input
+              type="email"
+              value={notifEmail}
+              onChange={e => setNotifEmail(e.target.value)}
+              placeholder="system@rolldev.my.id"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+            />
+          </div>
+
           <button
             type="submit" disabled={smtpSaving}
             className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition disabled:opacity-50"

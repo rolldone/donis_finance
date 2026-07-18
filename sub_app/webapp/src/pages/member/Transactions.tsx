@@ -195,7 +195,7 @@ export default function Transactions() {
           type="text" value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={'🔍 ' + t('transactions.search')}
-          className="px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 w-48"
+          className="px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 w-full sm:w-48"
         />
 
         {/* Month picker */}

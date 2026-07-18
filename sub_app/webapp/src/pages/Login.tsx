@@ -5,7 +5,7 @@ import AuthLayout from '../components/AuthLayout'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
-  const [form, setForm] = useState({ username: '', password: '' })
+  const [form, setForm] = useState({ username: '', password: '', rememberMe: false })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,7 +18,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await loginMember(form.username, form.password)
+      await loginMember(form.username, form.password, form.rememberMe)
       navigate('/member')
     } catch (err: any) {
       setError(err.message)
@@ -76,8 +76,17 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Forgot */}
-        <div className="flex items-center justify-end text-sm">
+        {/* Remember Me + Forgot */}
+        <div className="flex items-center justify-between text-sm">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.rememberMe}
+              onChange={(e) => setForm({ ...form, rememberMe: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/20"
+            />
+            <span className="text-muted">{t('auth.remember_me')}</span>
+          </label>
           <Link to="/member/auth/forgot-password" className="text-muted hover:text-title transition">
             {t('auth.forgot_password')}?
           </Link>

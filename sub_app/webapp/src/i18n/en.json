@@ -54,6 +54,7 @@
     "have_account": "Already have an account?",
     "login_member": "Login as Member",
     "login_admin": "Login as Admin",
+    "remember_me": "Remember me (30 days)",
     "reset_link_sent": "Check your email for the reset link"
   },
   "nav": {

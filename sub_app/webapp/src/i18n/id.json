@@ -54,6 +54,7 @@
     "have_account": "Sudah punya akun?",
     "login_member": "Masuk sebagai Member",
     "login_admin": "Masuk sebagai Admin",
+    "remember_me": "Ingat saya (30 hari)",
     "reset_link_sent": "Cek email Anda untuk link reset password"
   },
   "nav": {

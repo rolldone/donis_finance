@@ -114,11 +114,11 @@ export default function AdminBudget() {
           <h2 className="text-2xl font-semibold text-gray-900">{t('budget.title_admin')}</h2>
           <p className="text-gray-400 text-sm mt-1">{t('budget.admin_subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <select
             value={selectedMember}
             onChange={e => setSelectedMember(e.target.value)}
-            className="px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+            className="w-full sm:w-auto px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
           >
             <option value="">{t('budget.select_member')}</option>
             {members.map((m: any) => (
@@ -128,7 +128,7 @@ export default function AdminBudget() {
           {selectedMember && (
             <button
               onClick={openForm}
-              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition"
+              className="w-full sm:w-auto px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition"
             >
               + {t('budget.add')}
             </button>
@@ -192,11 +192,11 @@ export default function AdminBudget() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">
+                  <div className="flex items-center justify-between text-sm gap-2">
+                    <span className="text-gray-500 truncate">
                       {formatCurrency(budget.spent || 0)} / {formatCurrency(budget.amount || 0)}
                     </span>
-                    <span className={`font-medium ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
+                    <span className={`font-medium whitespace-nowrap ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
                       {percent}%
                     </span>
                   </div>
@@ -215,7 +215,7 @@ export default function AdminBudget() {
           {/* Summary */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('budget.summary')}</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-gray-400">{t('budget.total_budget')}</p>
                 <p className="text-lg font-bold text-gray-900">{formatCurrency(totalBudget)}</p>

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"go_framework/plugins/donisfinance/services"
 
@@ -29,8 +30,9 @@ type AdminLoginRequest struct {
 
 // MemberLoginRequest is the JSON body for member login.
 type MemberLoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username   string `json:"username" binding:"required"`
+	Password   string `json:"password" binding:"required"`
+	RememberMe bool   `json:"remember_me"`
 }
 
 // AdminLogin handles POST /admin/plugins/donisfinance/auth/login
@@ -64,18 +66,20 @@ func (h *AuthHandler) MemberLogin(c *gin.Context) {
 		return
 	}
 
-	session, err := services.LoginMember(h.DB, req.Username, req.Password)
+	session, err := services.LoginMember(h.DB, req.Username, req.Password, req.RememberMe)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":      session.Token,
-		"expires_at": session.ExpiresAt,
-		"user_id":    session.UserID,
-		"username":   session.Username,
-		"role":       session.Role,
+		"token":              session.Token,
+		"refresh_token":      session.RefreshToken,
+		"expires_at":         session.ExpiresAt,
+		"refresh_expires_at": session.RefreshExpiresAt,
+		"user_id":            session.UserID,
+		"username":           session.Username,
+		"role":               session.Role,
 	})
 }
 
@@ -137,7 +141,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 
 	// Send email with reset link
 	resetLink := fmt.Sprintf("%s/member/auth/reset-password?token=%s", getAppURL(), result.ResetToken)
-	_ = services.SendResetPasswordEmail(result.MemberEmail, result.MemberName, resetLink)
+	_ = services.SendResetPasswordEmail(h.DB, result.MemberEmail, result.MemberName, resetLink)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Jika email terdaftar, link reset akan dikirim"})
 }
@@ -162,6 +166,44 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil direset. Silakan login."})
+}
+
+// ─── Refresh Token ────────────────────────────────────────────────────────────
+
+// RefreshToken handles POST /api/member/token/refresh
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	refreshToken := extractBearerToken(c)
+	if refreshToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "refresh token is required in Authorization header"})
+		return
+	}
+
+	session, err := services.RefreshLoginSession(h.DB, refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token":      session.Token,
+		"expires_at": session.ExpiresAt,
+		"user_id":    session.UserID,
+		"username":   session.Username,
+		"role":       session.Role,
+	})
+}
+
+// extractBearerToken extracts the Bearer token from the Authorization header.
+func extractBearerToken(c *gin.Context) string {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+		return ""
+	}
+	return parts[1]
 }
 
 // getAppURL returns the base URL of the frontend from env or falls back.

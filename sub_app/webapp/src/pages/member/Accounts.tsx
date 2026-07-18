@@ -131,7 +131,7 @@ export default function Accounts() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">{t('accounts.title')}</h2>
           <p className="text-sm text-gray-400 mt-1">
@@ -155,17 +155,17 @@ export default function Accounts() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {accounts.map((acct) => (
-            <div key={acct.id} className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between hover:shadow-sm transition-shadow">
+            <div key={acct.id} className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:shadow-sm transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-lg">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-lg shrink-0">
                   {TYPE_ICONS[acct.type] || '💰'}
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900">{acct.name}</p>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{acct.name}</p>
                   <p className="text-xs text-gray-400">{TYPE_LABELS[acct.type] || acct.type}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:justify-end">
                 <div className="text-right">
                   <p className="font-semibold text-gray-900">{formatCurrency(acct.balance || 0)}</p>
                 </div>

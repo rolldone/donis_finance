@@ -1,0 +1,13 @@
+Member Baru Menunggu Persetujuan
+
+Halo Admin,
+
+Ada member baru yang telah mendaftar dan menunggu persetujuan Anda:
+
+  Nama     : {{.MemberName}}
+  Username : {{.MemberUsername}}
+  Email    : {{.MemberEmail}}
+
+Silakan login ke panel admin untuk menyetujui atau menolak registrasi ini.
+
+— donis_finance

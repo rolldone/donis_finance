@@ -1,27 +1,34 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
 
 	"go_framework/internal/auth"
+	"go_framework/internal/keydb"
 	"go_framework/internal/mail"
 	"go_framework/internal/uuid"
 
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 // AuthSession stores a logged-in session (admin or member).
 type AuthSession struct {
-	UserID    string    `json:"user_id"`
-	Username  string    `json:"username"`
-	Role      string    `json:"role"` // "admin" or "member"
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expires_at"`
+	UserID           string    `json:"user_id"`
+	Username         string    `json:"username"`
+	Role             string    `json:"role"` // "admin" or "member"
+	Token            string    `json:"token"`
+	ExpiresAt        time.Time `json:"expires_at"`
+	RefreshToken     string    `json:"refresh_token,omitempty"`
+	RefreshExpiresAt time.Time `json:"refresh_expires_at,omitempty"`
 }
 
 // AdminResult is returned after creating an admin.
@@ -87,7 +94,7 @@ func LoginAdmin(db *gorm.DB, username, password string) (*AuthSession, error) {
 }
 
 // LoginMember authenticates a member by username/password and returns a session.
-func LoginMember(db *gorm.DB, username, password string) (*AuthSession, error) {
+func LoginMember(db *gorm.DB, username, password string, rememberMe ...bool) (*AuthSession, error) {
 	type memberRow struct {
 		ID       string
 		Username string
@@ -114,14 +121,38 @@ func LoginMember(db *gorm.DB, username, password string) (*AuthSession, error) {
 		return nil, err
 	}
 
+	// Determine refresh token TTL
+	refreshTTL := time.Duration(auth.RefreshExpirySeconds()) * time.Second
+	if len(rememberMe) > 0 && rememberMe[0] {
+		refreshTTL = 30 * 24 * time.Hour // 30 days
+	}
+
+	// Generate refresh token
+	refreshToken, err := auth.SignRefreshToken(row.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store refresh token in KeyDB for revocation capability
+	refreshHash := auth.HashOpaqueToken(refreshToken)
+	ctx := context.Background()
+	if keydb.Client != nil {
+		if err := keydb.Client.Set(ctx, "refresh_tok:"+refreshHash, row.ID, refreshTTL).Err(); err != nil {
+			log.Printf("[warn] failed to store refresh token in KeyDB: %v", err)
+		}
+	}
+
 	exp := time.Now().Add(time.Duration(auth.AccessExpirySeconds()) * time.Second)
+	refreshExp := time.Now().Add(refreshTTL)
 
 	return &AuthSession{
-		UserID:    row.ID,
-		Username:  row.Username,
-		Role:      "member",
-		Token:     token,
-		ExpiresAt: exp,
+		UserID:           row.ID,
+		Username:         row.Username,
+		Role:             "member",
+		Token:            token,
+		ExpiresAt:        exp,
+		RefreshToken:     refreshToken,
+		RefreshExpiresAt: refreshExp,
 	}, nil
 }
 
@@ -218,7 +249,8 @@ func RegisterMember(db *gorm.DB, name, email, password string) (*MemberResult, e
 
 	// Find first admin to assign to
 	var admin struct {
-		ID string
+		ID   string
+		Name string
 	}
 	if err := db.Table("admins").Order("created_at ASC").First(&admin).Error; err != nil {
 		return nil, fmt.Errorf("no admin available, please contact administrator")
@@ -245,6 +277,17 @@ func RegisterMember(db *gorm.DB, name, email, password string) (*MemberResult, e
 
 	if err := db.Table("members").Create(member).Error; err != nil {
 		return nil, err
+	}
+
+	// Send confirmation email to the new member (non-blocking)
+	go SendRegisterConfirmationEmail(db, email, name, username)
+
+	// Notify admin about new pending member via notif_email setting (non-blocking)
+	if notif := GetNotifEmail(db); notif != "" {
+		slog.Info("sending admin notification", "notif_email", notif, "member", name)
+		go SendAdminNewMemberEmail(db, notif, admin.Name, name, username, email)
+	} else {
+		slog.Warn("notif_email not set, skipping admin notification", "member", name, "email", email)
 	}
 
 	return &MemberResult{ID: id, Name: name, Username: username}, nil
@@ -376,8 +419,151 @@ func (r *ResetPasswordMailable) From() (string, string) {
 	return "", ""
 }
 
+// ─── Register Member Mailable ────────────────────────────────────────────────
+
+// RegisterMemberMailable implements mail.Mailable for registration confirmation.
+type RegisterMemberMailable struct {
+	subject      string
+	templateBase string
+	data         map[string]interface{}
+}
+
+func (m *RegisterMemberMailable) Subject() string              { return m.subject }
+func (m *RegisterMemberMailable) TemplateBase() string         { return m.templateBase }
+func (m *RegisterMemberMailable) Data() map[string]interface{} { return m.data }
+func (m *RegisterMemberMailable) From() (string, string)       { return "", "" }
+
+// ─── Admin Notify Mailable ───────────────────────────────────────────────────
+
+// AdminNotifyMailable implements mail.Mailable for admin new-member notification.
+type AdminNotifyMailable struct {
+	subject      string
+	templateBase string
+	data         map[string]interface{}
+}
+
+func (a *AdminNotifyMailable) Subject() string              { return a.subject }
+func (a *AdminNotifyMailable) TemplateBase() string         { return a.templateBase }
+func (a *AdminNotifyMailable) Data() map[string]interface{} { return a.data }
+func (a *AdminNotifyMailable) From() (string, string)       { return "", "" }
+
+// ─── Send Registration Emails ────────────────────────────────────────────────
+
+// newMailerWithDB creates a Mailer with SMTP config loaded from DB.
+func newMailerWithDB(db *gorm.DB) *mail.Mailer {
+	cfg, _ := GetSMTPConfig(db)
+	if cfg != nil {
+		return mail.NewMailerWithConfig(cfg.ToMailConfig())
+	}
+	return mail.NewMailer()
+}
+
+// SendRegisterConfirmationEmail sends a confirmation email to the newly registered member.
+func SendRegisterConfirmationEmail(db *gorm.DB, toEmail, toName, username string) error {
+	data := map[string]interface{}{
+		"Name":     toName,
+		"Username": username,
+	}
+
+	m := &RegisterMemberMailable{
+		subject:      "Registrasi Berhasil — donis_finance",
+		templateBase: "plugins/donisfinance/templates/email/register_member",
+		data:         data,
+	}
+
+	mailer := newMailerWithDB(db)
+	mailer.Queue(toEmail, m)
+	return nil
+}
+
+// SendAdminNewMemberEmail notifies the admin about a new pending member.
+func SendAdminNewMemberEmail(db *gorm.DB, toEmail, adminName, memberName, memberUsername, memberEmail string) error {
+	data := map[string]interface{}{
+		"AdminName":      adminName,
+		"MemberName":     memberName,
+		"MemberUsername": memberUsername,
+		"MemberEmail":    memberEmail,
+	}
+
+	m := &AdminNotifyMailable{
+		subject:      "Member Baru — donis_finance",
+		templateBase: "plugins/donisfinance/templates/email/register_admin_notify",
+		data:         data,
+	}
+
+	mailer := newMailerWithDB(db)
+	mailer.Queue(toEmail, m)
+	return nil
+}
+
+// RefreshLoginSession validates a refresh token and returns a new access token.
+func RefreshLoginSession(db *gorm.DB, refreshTokenStr string) (*AuthSession, error) {
+	userID, err := auth.ParseRefreshToken(refreshTokenStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	// Check KeyDB for revocation
+	refreshHash := auth.HashOpaqueToken(refreshTokenStr)
+	ctx := context.Background()
+
+	if keydb.Client != nil {
+		val, err := keydb.Client.Get(ctx, "refresh_tok:"+refreshHash).Result()
+		if err == redis.Nil {
+			return nil, fmt.Errorf("refresh token has been revoked")
+		}
+		if err != nil {
+			log.Printf("[warn] KeyDB check failed: %v", err)
+		} else if val == "" || val != userID {
+			return nil, fmt.Errorf("refresh token has been revoked")
+		}
+	}
+
+	// Find the user
+	type memberRow struct {
+		ID       string
+		Username string
+		Status   string
+	}
+	var row memberRow
+	if err := db.Table("members").Where("id = ?", userID).First(&row).Error; err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	if row.Status != "active" {
+		return nil, fmt.Errorf("akun tidak aktif")
+	}
+
+	token, err := auth.SignAccessToken(row.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	exp := time.Now().Add(time.Duration(auth.AccessExpirySeconds()) * time.Second)
+
+	return &AuthSession{
+		UserID:    row.ID,
+		Username:  row.Username,
+		Role:      "member",
+		Token:     token,
+		ExpiresAt: exp,
+	}, nil
+}
+
+// RevokeRefreshToken removes a refresh token from KeyDB.
+func RevokeRefreshToken(refreshTokenStr string) error {
+	if refreshTokenStr == "" {
+		return nil
+	}
+	refreshHash := auth.HashOpaqueToken(refreshTokenStr)
+	ctx := context.Background()
+	if keydb.Client != nil {
+		return keydb.Client.Del(ctx, "refresh_tok:"+refreshHash).Err()
+	}
+	return nil
+}
+
 // SendResetPasswordEmail sends a reset-password link asynchronously.
-func SendResetPasswordEmail(toEmail, toName, resetLink string) error {
+func SendResetPasswordEmail(db *gorm.DB, toEmail, toName, resetLink string) error {
 	data := map[string]interface{}{
 		"Name":          toName,
 		"ResetLink":     resetLink,
@@ -390,7 +576,7 @@ func SendResetPasswordEmail(toEmail, toName, resetLink string) error {
 		data:         data,
 	}
 
-	mailer := mail.NewMailer()
+	mailer := newMailerWithDB(db)
 	mailer.Queue(toEmail, m)
 	return nil
 }

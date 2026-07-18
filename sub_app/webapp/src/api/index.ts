@@ -1,5 +1,31 @@
 const BASE_URL = window.location.origin
 
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = localStorage.getItem('refresh_token')
+  if (!refreshToken) return false
+
+  try {
+    const res = await fetch(BASE_URL + '/api/member/token/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + refreshToken,
+      },
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    localStorage.setItem('token', data.token)
+    if (data.expires_at) {
+      localStorage.setItem('expires_at', data.expires_at)
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function request<T = unknown>(method: string, path: string, data: unknown = null): Promise<T> {
   const token = localStorage.getItem('token')
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -11,6 +37,35 @@ async function request<T = unknown>(method: string, path: string, data: unknown 
     body: data ? JSON.stringify(data) : undefined,
   })
 
+  if (res.status === 401 && !path.includes('/token/refresh')) {
+    if (!refreshPromise) {
+      refreshPromise = tryRefreshToken().finally(() => { refreshPromise = null })
+    }
+    const refreshed = await refreshPromise
+    if (refreshed) {
+      const newToken = localStorage.getItem('token')
+      headers['Authorization'] = 'Bearer ' + newToken
+      const retryRes = await fetch(BASE_URL + path, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+      })
+      const retryJson = await retryRes.json()
+      if (!retryRes.ok) throw new Error(retryJson.error || 'Request failed')
+      return retryJson as T
+    }
+
+    // Refresh failed — clear auth and redirect
+    const savedUser = localStorage.getItem('user')
+    const role = savedUser ? JSON.parse(savedUser).role : null
+    localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('expires_at')
+    window.location.href = role === 'admin' ? '/admin/auth/login' : '/member/auth/login'
+    throw new Error('Session expired')
+  }
+
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || 'Request failed')
   return json as T
@@ -20,6 +75,9 @@ async function request<T = unknown>(method: string, path: string, data: unknown 
 
 export interface LoginResponse {
   token: string
+  refresh_token?: string
+  expires_at: string
+  refresh_expires_at?: string
   user_id: string
   username: string
   role: 'admin' | 'member'
@@ -106,8 +164,8 @@ export function loginAdmin(username: string, password: string) {
   return request<LoginResponse>('POST', '/api/admin/login', { username, password })
 }
 
-export function loginMember(username: string, password: string) {
-  return request<LoginResponse>('POST', '/api/member/login', { username, password })
+export function loginMember(username: string, password: string, rememberMe = false) {
+  return request<LoginResponse>('POST', '/api/member/login', { username, password, remember_me: rememberMe })
 }
 
 export function forgotPassword(email: string) {
@@ -395,10 +453,17 @@ export interface SMTPConfig {
   skip_verify: boolean
 }
 
-export function getAdminSMTPConfig() {
-  return request<{ smtp: SMTPConfig; env_smtp: SMTPConfig; override: boolean }>('GET', '/api/admin/settings/smtp')
+export interface SettingsResponse {
+  smtp: SMTPConfig
+  env_smtp: SMTPConfig
+  override: boolean
+  notif_email: string
 }
 
-export function saveAdminSMTPConfig(cfg: Partial<SMTPConfig>) {
-  return request<{ message: string; smtp: SMTPConfig; env_smtp: SMTPConfig; override: boolean }>('PUT', '/api/admin/settings/smtp', cfg)
+export function getAdminSMTPConfig() {
+  return request<SettingsResponse>('GET', '/api/admin/settings/smtp')
+}
+
+export function saveAdminSMTPConfig(cfg: Partial<SMTPConfig> & { notif_email?: string }) {
+  return request<SettingsResponse & { message: string }>('PUT', '/api/admin/settings/smtp', cfg)
 }

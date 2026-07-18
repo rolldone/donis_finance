@@ -155,9 +155,9 @@ export default function Dashboard() {
               const isOver = budget.remaining <= 0
               return (
                 <div key={budget.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-gray-600">{budget.category_name || t('common.without_category')}</span>
-                    <span className={`text-sm font-medium ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
+                  <div className="flex items-center justify-between mb-1.5 gap-2">
+                    <span className="text-sm text-gray-600 truncate">{budget.category_name || t('common.without_category')}</span>
+                    <span className={`text-sm font-medium whitespace-nowrap ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
                       {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
                     </span>
                   </div>

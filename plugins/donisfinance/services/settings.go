@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log/slog"
 	"os"
 
 	"go_framework/internal/mail"
@@ -36,6 +37,30 @@ const (
 	SMTPKeyUseStartTLS = "smtp_use_starttls"
 	SMTPKeySkipVerify  = "smtp_skip_verify"
 )
+
+// ─── Notification Config ─────────────────────────────────────────────────────
+
+const (
+	NotifKeyEmail = "notif_email"
+)
+
+// GetNotifEmail loads the notification email from DB. Returns empty string if not set.
+func GetNotifEmail(db *gorm.DB) string {
+	var s models.Setting
+	if err := db.Model(&models.Setting{}).Where("key = ?", NotifKeyEmail).First(&s).Error; err != nil {
+		return ""
+	}
+	return s.Value
+}
+
+// SaveNotifEmail saves the notification email to DB.
+func SaveNotifEmail(db *gorm.DB, email string) error {
+	if email == "" {
+		return db.Where("key = ?", NotifKeyEmail).Delete(&models.Setting{}).Error
+	}
+	slog.Info("saving notification email", "notif_email", email)
+	return db.Model(&models.Setting{}).Where("key = ?", NotifKeyEmail).Assign(models.Setting{Key: NotifKeyEmail, Value: email}).FirstOrCreate(&models.Setting{}).Error
+}
 
 // GetSMTPConfig loads SMTP config from DB. Returns nil if no config stored.
 func GetSMTPConfig(db *gorm.DB) (*SMTPConfig, error) {

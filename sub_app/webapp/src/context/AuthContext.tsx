@@ -15,7 +15,7 @@ interface AuthContextType {
   isAdmin: boolean
   isMember: boolean
   loginAdmin: (username: string, password: string) => Promise<unknown>
-  loginMember: (username: string, password: string) => Promise<unknown>
+  loginMember: (username: string, password: string, rememberMe?: boolean) => Promise<unknown>
   logout: () => void
 }
 
@@ -57,26 +57,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(savedToken)
         setUser(JSON.parse(savedUser) as User)
       } else {
-        // Token expired
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
+        // Token expired — try refresh
+        // (refresh will be handled by API interceptor on next request)
+        setToken(savedToken)
+        setUser(JSON.parse(savedUser) as User)
       }
     }
     setLoading(false)
   }, [])
 
-  function saveAuth(token: string, user: User) {
+  function saveAuth(token: string, user: User, refreshToken?: string) {
     setToken(token)
     setUser(user)
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken)
+    } else {
+      localStorage.removeItem('refresh_token')
+    }
   }
 
   function clearAuth() {
     setToken(null)
     setUser(null)
     localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
+    localStorage.removeItem('expires_at')
   }
 
   const handleLoginAdmin = useCallback(async (username: string, password: string) => {
@@ -89,13 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res
   }, [])
 
-  const handleLoginMember = useCallback(async (username: string, password: string) => {
-    const res = await loginMember(username, password)
+  const handleLoginMember = useCallback(async (username: string, password: string, rememberMe?: boolean) => {
+    const res = await loginMember(username, password, rememberMe)
     saveAuth(res.token, {
       id: res.user_id,
       username: res.username,
       role: res.role,
-    })
+    }, res.refresh_token)
     return res
   }, [])
 

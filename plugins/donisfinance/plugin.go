@@ -82,6 +82,7 @@ func (p *Plugin) RegisterRoutes(router *gin.Engine, admin *gin.RouterGroup, api 
 	api.POST("/member/auth/register", authH.Register)
 	api.POST("/member/auth/forgot-password", authH.ForgotPassword)
 	api.POST("/member/auth/reset-password", authH.ResetPassword)
+	api.POST("/member/token/refresh", authH.RefreshToken)
 	api.GET("/admin/health", pluginhandlers.HealthHandler)
 
 	// --- Admin-only routes (JWT required) ---

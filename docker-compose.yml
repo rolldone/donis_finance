@@ -51,8 +51,10 @@ services:
       - |
         apk add --no-cache dcron tzdata
         echo "0 8 1 * * cd /app && go run ./cmd/console donisfinance:send-bulk-reports >> /var/log/cron.log 2>&1" | crontab -
-        echo "Monthly report scheduler installed (1st at 08:00). Starting container..."
+        echo "Monthly report scheduler installed (1st at 08:00). Starting server..."
         dcron -l 8 &
+        cd /app && PORT=8200 GIN_MODE=release nohup ./server > /tmp/server.log 2>&1 &
+        echo "Server started on port 8200"
         exec tail -f /dev/null
     working_dir: /app
     ports:

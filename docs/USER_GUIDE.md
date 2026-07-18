@@ -326,11 +326,32 @@ Misalnya: transfer dari Cash ke Tabungan.
 
 ### 🎯 Budget (Anggaran Saya)
 
-Melihat status budget yang sudah diatur admin.
+Kelola batas pengeluaran pribadi per kategori per bulan.
 
-- Lihat berapa budget yang sudah terpakai
-- Lihat sisa budget per kategori
-- Peringatan jika pengeluaran mendekati/melebihi budget
+#### Menambah Budget
+
+1. Klik **+ Add Budget**
+2. Pilih **Category** dan isi **Amount** (batas pengeluaran)
+3. Klik **Save**
+
+#### Mengedit Budget
+
+1. Klik ikon **✏️** pada kartu budget yang ingin diedit
+2. Ubah **Amount** sesuai kebutuhan
+3. Klik **Save**
+
+#### Menghapus Budget
+
+1. Klik ikon **🗑️** pada kartu budget yang ingin dihapus
+2. Konfirmasi dengan klik **OK** pada dialog
+
+#### Melihat Status Budget
+
+- **Budget Amount** — batas yang ditetapkan
+- **Spent** — sudah terpakai berapa
+- **Remaining** — sisa budget
+- **Percentage** — persentase penggunaan
+- **Indikator warna** — hijau (aman), kuning (hampir habis), merah (melebihi)
 
 ---
 

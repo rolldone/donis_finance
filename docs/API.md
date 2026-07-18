@@ -593,6 +593,7 @@ Member endpoints are similar to admin but scoped to the authenticated member's d
 | `GET /admin/transactions?member_id=X` | `GET /member/transactions` | Auto-scoped to member |
 | `POST /member/transactions` | ✅ | Members can create their own transactions |
 | `POST /member/accounts` | ✅ | Members can create their own accounts |
+| `POST`/`GET`/`DELETE /member/budgets` | ✅ | Members can manage their own budgets |
 
 ### Member-Only Endpoints
 
@@ -664,6 +665,49 @@ For transfers:
   "date": "2026-07-15"
 }
 ```
+
+#### POST `/api/member/budgets`
+
+Set budget (upsert: creates or updates by category+month+year). Auto-scoped to authenticated member.
+
+**Request:**
+```json
+{
+  "category_id": "uuid",
+  "month": 7,
+  "year": 2026,
+  "amount": 2000000
+}
+```
+
+#### GET `/api/member/budgets/status`
+
+Get budget status for a month. Auto-scoped to authenticated member.
+
+**Query:** `?month=7&year=2026`
+
+**Response (200):**
+```json
+{
+  "budgets": [
+    {
+      "id": "uuid",
+      "category_id": "uuid",
+      "category_name": "Makanan",
+      "category_icon": "🍽️",
+      "budget_amount": 2000000,
+      "spent_amount": 1500000,
+      "remaining": 500000,
+      "percentage": 75.0,
+      "is_over": false
+    }
+  ]
+}
+```
+
+#### DELETE `/api/member/budgets/:id`
+
+Delete a budget entry. Only works if the budget belongs to the authenticated member.
 
 ---
 

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── CSS Variables ────────────────────────────────────── */
+:root {
+  --bg-base: #f9fafb;
+  --bg-surface: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-topbar: #ffffff;
+  --bg-input: #f9fafb;
+  --bg-hover: #f9fafb;
+  --text-title: #111827;
+  --text-body: #374151;
+  --text-muted: #9ca3af;
+  --text-secondary: #6b7280;
+  --border-default: #e5e7eb;
+  --border-light: #f3f4f6;
+  --sidebar-text: #6b7280;
+  --sidebar-active-bg: #f3f4f6;
+  --sidebar-active-text: #111827;
+  --overlay: rgba(0, 0, 0, 0.2);
+}
+
+.dark {
+  --bg-base: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-sidebar: #0f172a;
+  --bg-topbar: #1e293b;
+  --bg-input: #334155;
+  --bg-hover: #334155;
+  --text-title: #f1f5f9;
+  --text-body: #cbd5e1;
+  --text-muted: #64748b;
+  --text-secondary: #94a3b8;
+  --border-default: #334155;
+  --border-light: #1e293b;
+  --sidebar-text: #94a3b8;
+  --sidebar-active-bg: #334155;
+  --sidebar-active-text: #f1f5f9;
+  --overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Theme utility classes ────────────────────────────── */
+.bg-base { background-color: var(--bg-base); }
+.bg-surface { background-color: var(--bg-surface); }
+.bg-sidebar { background-color: var(--bg-sidebar); }
+.bg-topbar { background-color: var(--bg-topbar); }
+.bg-input { background-color: var(--bg-input); }
+.text-title { color: var(--text-title); }
+.text-body { color: var(--text-body); }
+.text-muted { color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+.text-sidebar-text { color: var(--sidebar-text); }
+.text-sidebar-active-text { color: var(--sidebar-active-text); }
+.bg-sidebar-active-bg { background-color: var(--sidebar-active-bg); }
+.border-default { border-color: var(--border-default); }
+.border-light { border-color: var(--border-light); }
+.hover-bg:hover { background-color: var(--bg-hover); }
+
+/* ─── Dark mode overrides for common Tailwind classes ─── */
+.dark .bg-white { background-color: #1e293b; }        /* slate-800 */
+.dark .bg-gray-50 { background-color: #0f172a; }       /* slate-900 */
+.dark .bg-gray-100 { background-color: #1e293b; }     /* slate-800 */
+.dark .bg-gray-200 { background-color: #334155; }     /* slate-700 */
+.dark .text-gray-900 { color: #f1f5f9; }              /* slate-100 */
+.dark .text-gray-700 { color: #cbd5e1; }              /* slate-300 */
+.dark .text-gray-600 { color: #94a3b8; }              /* slate-400 */
+.dark .text-gray-500 { color: #94a3b8; }              /* slate-400 */
+.dark .text-gray-400 { color: #64748b; }              /* slate-500 */
+.dark .text-gray-300 { color: #64748b; }              /* slate-500 */
+.dark .border-gray-200 { border-color: #334155; }     /* slate-700 */
+.dark .border-gray-100 { border-color: #1e293b; }     /* slate-800 */
+.dark .border-gray-50 { border-color: #1e293b; }      /* slate-800 */
+.dark .divide-gray-100 > * { border-color: #1e293b; } /* slate-800 */
+.dark .divide-gray-50 > * { border-color: #1e293b; }  /* slate-800 */
+.dark .hover\:bg-gray-50:hover { background-color: #334155; }
+.dark .hover\:bg-gray-100:hover { background-color: #334155; }
+.dark .hover\:text-gray-900:hover { color: #f1f5f9; }
+.dark .hover\:text-gray-600:hover { color: #94a3b8; }
+.dark .bg-red-50 { background-color: #450a0a; }       /* red-950 */
+.dark .text-red-600 { color: #f87171; }                /* red-400 */
+.dark .text-green-600 { color: #4ade80; }              /* green-400 */
+.dark .text-blue-600 { color: #60a5fa; }               /* blue-400 */
+.dark .bg-green-50 { background-color: #052e16; }     /* green-950 */
+.dark .bg-blue-50 { background-color: #0c1929; }      /* blue-950 */
+

@@ -1,103 +1,325 @@
-Architecture & Request Flow
-===========================
+# Donis Finance
 
-Summary
--------
-This repository is a modular Go web application framework for backend services. The documentation here explains the architecture, request flow, important environment variables, and how to run development tools (server and console).
+> **Family/household financial management application**
 
-Table of contents
------------------
-- Overview
-- Quick Start
-- What's included
-- What's NOT included (implement via plugins)
-- Main components
-- Bootstrapping
-- Request flow
-- Plugin system
-- Environment variables
-- Auth
-  - JWT utilities available
-  - Testing JWT functions
-- DB
-- Console commands overview
-- Migration commands (console)
-- Plugin quickstart (CLI generator)
-- Plugin registration (manual)
+**Live**: `http://100.104.55.66:8200`
+**DB Admin**: `http://100.104.55.66:8201`
 
-Overview
---------
-- This is a **minimalist, plugin-based Go web framework** for building modular backend services
-- Main binaries: `cmd/server/main.go` (HTTP server) and `cmd/console/main.go` (CLI/migrations)
-- Core philosophy: provide essential infrastructure (DB, routing, plugins) and let you implement features via plugins or custom code
-- **No built-in authentication or user management** - implement via plugins (recommended) or custom middleware
-- Application bootstrap and dependency wiring are in `internal/app/bootstrap.go`
-- Extensible via a plugin system that supports middleware, routes, services, migrations, and console commands
+---
 
-Quick Start
------------
-1. Copy example env and edit values:
+## 🚀 Quick Start
+
+### Access URLs
+
+| URL | Description |
+|-----|-------------|
+| `http://100.104.55.66:8200/admin` | Admin Panel |
+| `http://100.104.55.66:8200/member` | Member Panel |
+| `http://100.104.55.66:8201` | pgAdmin (Database) |
+
+### Default Credentials
+
+**Admin:**
+- Username: `admin`
+- Password: `admin123`
+
+**pgAdmin:**
+- Email: `donny@donis.finance`
+- Password: `donis_admin`
+
+### Start the Application
 
 ```bash
-cp .env.example .env
-# edit .env as needed
+cd /home/donny/workspaces/donis_finance
+
+# Start all Docker services
+docker compose up -d
+
+# Start the Go server inside the container
+docker exec -d donis-finance-app-1 sh -c "cd /app && GIN_MODE=release ./server"
 ```
 
-2. Run migrations (applies core then plugin migrations):
+Verify: `curl -s http://100.104.55.66:8200/api/admin/health`
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Database Schema](#database-schema)
+- [API Documentation](#api-documentation)
+- [Frontend Pages](#frontend-pages)
+- [Development Guide](#development-guide)
+- [Deployment](#deployment)
+
+---
+
+## Overview
+
+Donis Finance is a multi-user financial management app designed for families or small groups. An **admin** creates the account and manages **members** (family members). Each member can track income, expenses, transfers between accounts, and budgets.
+
+### Key Concepts
+
+- **Multi-tenant by admin**: Each admin owns their members and all associated data
+- **Role-based**: Admin (manage everything) vs Member (own data only)
+- **Account types**: Cash, Bank Account, E-Wallet, Savings, Investment
+- **Transaction types**: Income, Expense, Transfer (between accounts)
+- **Budget tracking**: Set monthly budget per category, get warnings when exceeded
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Go 1.26 + Gin + GORM |
+| Database | PostgreSQL 16 |
+| Cache | KeyDB (Redis-compatible) |
+| Frontend | React 19 + TypeScript + Vite 8.1.4 |
+| Styling | Tailwind CSS 4 |
+| Charts | Recharts |
+| Authentication | JWT (HS256) |
+| Container | Docker + Docker Compose |
+
+---
+
+## Project Structure
+
+```
+donis_finance/
+├── cmd/
+│   ├── server/main.go              # HTTP server entrypoint
+│   └── console/main.go             # CLI tools (migrations, etc.)
+│
+├── internal/                       # Core framework
+│   ├── app/bootstrap.go            # App initialization
+│   ├── auth/                       # JWT sign/parse
+│   ├── db/                         # GORM setup, migrations
+│   ├── storage/                    # File storage (local/S3)
+│   ├── keydb/                      # Redis client
+│   ├── mail/                       # SMTP email
+│   ├── events/                     # Pub/sub events
+│   └── secrets/                    # Environment loading
+│
+├── plugins/
+│   └── donisfinance/               # ★ All business logic
+│       ├── plugin.go               # Route registration
+│       ├── handlers/               # HTTP handlers
+│       ├── services/               # Business logic
+│       ├── models/                 # Database models
+│       ├── middleware/             # JWT auth
+│       ├── migrations/postgres/    # SQL migrations
+│       └── templates/email/        # Email templates
+│
+├── sub_app/webapp/                 # ★ React frontend
+│   ├── src/
+│   │   ├── App.tsx                 # Route definitions
+│   │   ├── api/index.ts            # API client
+│   │   ├── components/             # Layouts (AdminLayout, etc.)
+│   │   ├── context/                # Auth, Theme, Language
+│   │   └── pages/                  # Page components
+│   │       ├── admin/              # Admin pages
+│   │       └── member/             # Member pages
+│   └── dist/                       # Built assets
+│
+├── templates/index.tmpl            # SPA HTML template
+├── docker-compose.yml              # Docker services
+├── .env                            # Environment variables
+└── AGENTS.md                       # AI agent context
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Browser                                                     │
+│  ├── Admin Panel  (http://100.104.55.66:8200/admin)          │
+│  └── Member Panel (http://100.104.55.66:8200/member)         │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ HTTP
+┌─────────────────────▼───────────────────────────────────────┐
+│  Go Server (port 8200)                                       │
+│  ├── SPA Static Files (sub_app/webapp/dist/)                 │
+│  ├── REST API (/api/*)                                       │
+│  │   ├── Auth Middleware (JWT Bearer)                        │
+│  │   ├── Handlers → Services → GORM → PostgreSQL            │
+│  │   └── File Storage (./storage/)                           │
+│  └── Cron Jobs (monthly email reports)                       │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
+│  PostgreSQL 16          KeyDB (Redis)                        │
+│  Database: donis_finance  Flash messages, sessions           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Features
+
+### Admin Features
+- 📊 **Dashboard**: Overview of all members' finances (total income/expense, charts)
+- 👥 **Members**: Create, approve/reject, manage family members
+- 🏷️ **Categories**: Manage income/expense categories with icons and colors
+- 💳 **Transactions**: View/search/filter all members' transactions
+- 🎯 **Budget**: Set monthly budgets per category, track spending vs limits
+- ⚙️ **Settings**: Admin profile, SMTP email configuration
+
+### Member Features
+- 📊 **Dashboard**: Personal financial overview
+- 💳 **Transactions**: Create income/expense/transfer, attach files
+- 🎯 **Budget**: View budget status per category
+- 👤 **Profile**: Update name, username, password
+
+### Common Features
+- 🌙 **Dark Mode**: Toggle between light and dark theme
+- 🌐 **Language**: Indonesian (ID) / English (EN) switcher
+- 📎 **Attachments**: Upload images/documents to transactions (max 10MB)
+- 📧 **Email Reports**: Monthly financial report sent via email
+
+---
+
+## Database Schema
+
+| Table | Description |
+|-------|------------|
+| `admins` | Admin users (username, password, email) |
+| `members` | Family members linked to admin (status: active/pending/rejected) |
+| `categories` | Income/expense categories with icons and colors |
+| `accounts` | Member wallets (cash, bank, e-wallet, savings, investment) |
+| `transactions` | Financial records (income, expense, transfer) |
+| `budgets` | Monthly budget limits per category per member |
+| `settings` | Key-value config storage (SMTP override, etc.) |
+
+All primary keys are UUIDs. Monetary amounts are stored as `BIGINT` (Rupiah, no decimals).
+
+---
+
+## API Documentation
+
+Base URL: `http://100.104.55.66:8200/api`
+
+Full API documentation: [docs/API.md](docs/API.md)
+
+### Authentication
 
 ```bash
-go run ./cmd/console migrate up
+# Login
+curl -X POST http://100.104.55.66:8200/api/admin/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+
+# Use token
+curl http://100.104.55.66:8200/api/admin/profile \
+  -H "Authorization: Bearer <token>"
 ```
 
-3. Start the server:
+---
+
+## Frontend Pages
+
+### Admin Routes
+| URL | Page |
+|-----|------|
+| `/admin/auth/login` | Admin Login |
+| `/admin` | Dashboard |
+| `/admin/members` | Members Management |
+| `/admin/categories` | Categories Management |
+| `/admin/transactions` | Transactions List |
+| `/admin/budget` | Budget Management |
+| `/admin/settings` | Settings |
+
+### Member Routes
+| URL | Page |
+|-----|------|
+| `/member/auth/login` | Member Login |
+| `/member/auth/register` | Registration |
+| `/member` | Dashboard |
+| `/member/transactions` | Transactions |
+| `/member/budget` | Budget |
+| `/member/profile` | Profile |
+
+---
+
+## Development Guide
+
+### Prerequisites
+- Docker & Docker Compose
+- Go 1.26 (inside Docker container)
+- Node.js 22+ (for frontend development)
+
+### Build Commands
 
 ```bash
-go run ./cmd/server
+# Build frontend
+cd sub_app/webapp && npm run build
+
+# Build backend (inside container)
+docker exec donis-finance-app-1 sh -c "cd /app && go build -o /app/server ./cmd/server"
 ```
 
-4. (Optional) Generate a new plugin:
+### ⚠️ Important: After Frontend Build
+
+When you run `npm run build`, Vite generates new asset hashes. You **must**:
+
+1. Note the new filenames from build output (e.g., `index-XXXX.js`, `index-XXXX.css`)
+2. Update `templates/index.tmpl` with the new hashes
+3. Rebuild the Go binary (it embeds the template)
+
+### Run Migrations
 
 ```bash
-go run ./cmd/console plugin new --id my-plugin
+# Inside container
+docker exec donis-finance-app-1 sh -c "cd /app && go run ./cmd/console migrate up"
 ```
 
-The plugin generator creates an initial migration with a timestamp prefix, in the same style as Laravel: `YYYY_MM_DD_HHMMSS_name.up.sql` and `YYYY_MM_DD_HHMMSS_name.down.sql`.
+### Full Restart
 
-See sections below for more details.
+```bash
+# Kill stale processes
+docker exec donis-finance-app-1 sh -c "kill -9 \$(pgrep -f './server') 2>/dev/null"
 
-What's included
----------------
-✅ Database connectivity (GORM - PostgreSQL, MySQL, MariaDB)  
-✅ Database migrations system  
-✅ Plugin architecture (middleware, routes, services, migrations, console commands)  
-✅ Plugin generator CLI (`plugin new`)  
-✅ JWT utilities (token generation/verification)  
-✅ CORS configuration  
-✅ Console commands (migrations, plugin generator, user management stub)  
-✅ KeyDB/Redis client (for flash messages)  
-✅ Mailer utilities  
-✅ Transaction helpers  
-✅ Swagger documentation support  
+# Rebuild and restart
+docker exec donis-finance-app-1 sh -c "cd /app && go build -o /app/server ./cmd/server"
+docker exec -d donis-finance-app-1 sh -c "cd /app && GIN_MODE=release ./server"
+```
 
-What's NOT included (implement via plugins)
---------------------------------------------
-❌ Authentication service & middleware  
-❌ User/Admin models  
-❌ Authorization/permissions system  
-❌ Built-in CRUD endpoints  
-❌ Session management  
-❌ Password hashing/verification utilities  
+---
 
-**Recommended:** Create an `auth` plugin using the plugin generator to implement authentication features.
+## Deployment
 
-Main components
----------------
-- Bootstrap & wiring: `internal/app/bootstrap.go`
-- Business services: `internal/admin/services`
-- Database (GORM): `internal/db/gorm.go`
-- Auth utilities (JWT): `internal/auth` (token generation/verification helpers)
-- Plugin system: `internal/pluginloader` and `internal/plugins`
-- CLI / migrations: `internal/console`
+### Docker Services
+
+| Service | Container | Port | Image |
+|---------|-----------|------|-------|
+| App | `donis-finance-app-1` | **8200** | `golang:1.26-alpine` |
+| PostgreSQL | `donis-finance-postgres-1` | 5432 (internal) | `postgres:16-alpine` |
+| KeyDB | `donis-finance-keydb-1` | 6379 (internal) | `eqalpha/keydb:alpine` |
+| pgAdmin | `donis-finance-pgadmin-1` | **8201** | `dpage/pgadmin4:latest` |
+
+### Environment Variables
+
+See `.env` file for all configuration. Key variables:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `APP_URL` | `http://100.104.55.66:8200` | Public application URL |
+| `PORT` | `8200` | Server port |
+| `DB_HOST` | `postgres` | Database host |
+| `DB_NAME` | `donis_finance` | Database name |
+| `SMTP_HOST` | `sandbox.smtp.mailtrap.io` | Email server |
+
+---
+
+## License
+
+Private — Donis Finance
 - Mailer: `internal/mail`
 - KeyDB/Redis client: `internal/keydb`
 - Storage abstraction: `internal/storage`

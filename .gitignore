@@ -1,11 +1,38 @@
-.sync_temp/config.json
-.sync_temp/file_cache.db
-.sync_temp/indexing_files.db
-.sync_temp/.ssh/config
-.sync_temp/logs/watcher.log
-.ssh/openssh_nopassword
-.ssh/public_key
+# Environment
 .env
-.sync_ignore
-make-sync.yaml
-.sync_temp/ssh-forward-ssh_umahstore_core-1765096256.log
+
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server
+b
+bin/
+run_server
+
+# Node / Frontend
+sub_app/webapp/node_modules/
+sub_app/webapp/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Storage (user uploads)
+storage/
+
+# Temp / run state
+tmp/
+pid.txt
+
+# Exported data
+*.csv

@@ -1,0 +1,79 @@
+name: donis-finance
+
+services:
+  # ---------- PostgreSQL ----------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: &db_user donis
+      POSTGRES_PASSWORD: &db_pass donis_secret
+      POSTGRES_DB: donis_finance
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U donis -d donis_finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - donis-net
+
+  # ---------- KeyDB (Redis drop-in) ----------
+  keydb:
+    image: eqalpha/keydb:alpine
+    restart: unless-stopped
+    networks:
+      - donis-net
+
+  # ---------- PgAdmin ----------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    ports:
+      - "8201:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: donny@donis.finance
+      PGADMIN_DEFAULT_PASSWORD: donis_admin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - donis-net
+
+  # ---------- Dev Container (with cron scheduler) ----------
+  app:
+    image: golang:1.26-alpine
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache dcron tzdata
+        echo "0 8 1 * * cd /app && go run ./cmd/console donisfinance:send-bulk-reports >> /var/log/cron.log 2>&1" | crontab -
+        echo "Monthly report scheduler installed (1st at 08:00). Starting container..."
+        dcron -l 8 &
+        exec tail -f /dev/null
+    working_dir: /app
+    ports:
+      - "8200:8200"
+    volumes:
+      - .:/app
+      - go-modules:/go/pkg/mod
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keydb:
+        condition: service_started
+    networks:
+      - donis-net
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  go-modules:
+
+networks:
+  donis-net:
+    driver: bridge

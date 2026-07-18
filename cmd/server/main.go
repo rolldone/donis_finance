@@ -16,6 +16,8 @@ import (
 	"syscall"
 
 	"go_framework/internal/app"
+	"go_framework/internal/plugins"
+	donisfinance "go_framework/plugins/donisfinance"
 )
 
 // main is a thin entrypoint; core boot logic lives in internal/app.
@@ -26,11 +28,9 @@ func main() {
 
 	err := app.Run(app.Options{
 		RegisterPlugins: func() {
-			// Register your custom plugins here. Example:
-			// import "go_framework/plugins/myplugin"
-			// plugins.RegisterPlugins([]plugins.Plugin{
-			//     myplugin.New(),
-			// })
+			plugins.RegisterPlugins([]plugins.Plugin{
+				donisfinance.New(),
+			})
 		},
 	})
 	if err != nil {

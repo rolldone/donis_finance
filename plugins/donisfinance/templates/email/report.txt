@@ -1,0 +1,8 @@
+Halo {{.Name}},
+
+Berikut laporan keuangan bulan {{.MonthName}} {{.Year}}:
+
+{{.Dashboard}}
+
+—
+donis_finance

@@ -161,6 +161,14 @@ export function createAccount(name: string, type = 'bank', initialBalance = 0) {
   return request<AccountData>('POST', '/api/member/accounts', { name, type, initial_balance: initialBalance })
 }
 
+export function updateAccount(id: string, name: string, type: string) {
+  return request<{ account: AccountData }>('PUT', `/api/member/accounts/${id}`, { name, type })
+}
+
+export function deleteAccount(id: string) {
+  return request('DELETE', `/api/member/accounts/${id}`)
+}
+
 // ─── Transactions ─────────────────────────────────────────────────────────────
 
 interface QueryParams {

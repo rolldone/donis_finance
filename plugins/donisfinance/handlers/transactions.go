@@ -418,6 +418,42 @@ func (h *TransactionHandler) CreateAccount(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"account": result})
 }
 
+// UpdateAccount godoc
+// PUT /api/member/accounts/:id
+func (h *TransactionHandler) UpdateAccount(c *gin.Context) {
+	userID := c.GetString("user_id")
+	id := c.Param("id")
+
+	var req struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	result, err := services.UpdateAccount(h.db, id, userID, req.Name, req.Type)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"account": result})
+}
+
+// DeleteAccount godoc
+// DELETE /api/member/accounts/:id
+func (h *TransactionHandler) DeleteAccount(c *gin.Context) {
+	userID := c.GetString("user_id")
+	id := c.Param("id")
+
+	if err := services.DeleteAccount(h.db, id, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "account deleted"})
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func parseInt(s string, defaultVal int) int {

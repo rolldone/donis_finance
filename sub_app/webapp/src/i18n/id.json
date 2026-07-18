@@ -59,6 +59,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "transactions": "Transaksi",
+    "accounts": "Akun",
     "budget": "Budget",
     "profile": "Profil",
     "members": "Member",
@@ -236,6 +237,20 @@
     "export_desc": "Download transaksi bulan ini dalam format CSV",
     "export_all": "Export Semua",
     "export_per_member": "Export per Member"
+  },
+  "accounts": {
+    "title": "Akun",
+    "total_balance": "Total Saldo",
+    "add": "Tambah Akun",
+    "add_title": "Tambah Akun",
+    "edit_title": "Edit Akun",
+    "no_accounts": "Belum ada akun. Tambahkan untuk memulai!",
+    "name": "Nama Akun",
+    "name_placeholder": "Mis: Dompet Utama",
+    "name_required": "Nama akun wajib diisi",
+    "type": "Tipe",
+    "initial_balance": "Saldo Awal",
+    "delete_confirm": "Hapus akun {{name}}?"
   },
   "member": {
     "profile": "Profil",

@@ -140,6 +140,8 @@ func (p *Plugin) RegisterRoutes(router *gin.Engine, admin *gin.RouterGroup, api 
 		mem.GET("/categories", txH.ListCategories)
 		mem.GET("/accounts", txH.ListAccounts)
 		mem.POST("/accounts", txH.CreateAccount)
+		mem.PUT("/accounts/:id", txH.UpdateAccount)
+		mem.DELETE("/accounts/:id", txH.DeleteAccount)
 		mem.GET("/transactions", txH.ListTransactions)
 		mem.GET("/transactions/summary", txH.GetSummary)
 		mem.GET("/transactions/monthly", txH.GetMonthlySeries)

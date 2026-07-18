@@ -8,6 +8,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 const NAV_ITEMS = [
   { path: '/member', labelKey: 'nav.dashboard', icon: '📊' },
   { path: '/member/transactions', labelKey: 'nav.transactions', icon: '💳' },
+  { path: '/member/accounts', labelKey: 'nav.accounts', icon: '🏦' },
   { path: '/member/budget', labelKey: 'nav.budget', icon: '🎯' },
   { path: '/member/profile', labelKey: 'nav.profile', icon: '👤' },
 ]

@@ -17,6 +17,7 @@ import AdminLogin from './pages/admin/Login'
 // Member pages
 import MemberDashboard from './pages/member/Dashboard'
 import MemberTransactions from './pages/member/Transactions'
+import MemberAccounts from './pages/member/Accounts'
 import MemberBudget from './pages/member/Budget'
 import MemberProfile from './pages/member/Profile'
 
@@ -49,6 +50,7 @@ function App() {
           {/* Member dashboard routes (protected) */}
           <Route path="/member" element={<MemberRoute><DashboardLayout><MemberDashboard /></DashboardLayout></MemberRoute>} />
           <Route path="/member/transactions" element={<MemberRoute><DashboardLayout><MemberTransactions /></DashboardLayout></MemberRoute>} />
+          <Route path="/member/accounts" element={<MemberRoute><DashboardLayout><MemberAccounts /></DashboardLayout></MemberRoute>} />
           <Route path="/member/budget" element={<MemberRoute><DashboardLayout><MemberBudget /></DashboardLayout></MemberRoute>} />
           <Route path="/member/profile" element={<MemberRoute><DashboardLayout><MemberProfile /></DashboardLayout></MemberRoute>} />
 

@@ -59,6 +59,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "transactions": "Transactions",
+    "accounts": "Accounts",
     "budget": "Budget",
     "profile": "Profile",
     "members": "Members",
@@ -236,6 +237,20 @@
     "export_desc": "Download this month's transactions in CSV format",
     "export_all": "Export All",
     "export_per_member": "Export per Member"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "total_balance": "Total Balance",
+    "add": "Add Account",
+    "add_title": "Add Account",
+    "edit_title": "Edit Account",
+    "no_accounts": "No accounts yet. Add one to get started!",
+    "name": "Account Name",
+    "name_placeholder": "e.g. Main Wallet",
+    "name_required": "Account name is required",
+    "type": "Type",
+    "initial_balance": "Initial Balance",
+    "delete_confirm": "Delete account {{name}}?"
   },
   "member": {
     "profile": "Profile",

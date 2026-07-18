@@ -233,12 +233,16 @@ cd /app
 | `donisfinance:list-members` | List all members |
 | `donisfinance:tx-add` | Add a transaction |
 | `donisfinance:tx-list` | List transactions |
+| `donisfinance:tx-edit` | Edit a transaction (partial update) |
 | `donisfinance:tx-delete` | Delete a transaction |
 | `donisfinance:tx-transfer` | Transfer between accounts |
 | `donisfinance:tx-summary` | Monthly income/expense summary |
 | `donisfinance:tx-export` | Export transactions to CSV |
+| `donisfinance:tx-import` | Import from CSV (BCA/BLU format) |
 | `donisfinance:account-create` | Create an account |
 | `donisfinance:account-list` | List accounts |
+| `donisfinance:account-update` | Update account name/type/balance |
+| `donisfinance:account-adjust` | Adjust account balance (with audit) |
 | `donisfinance:budget-set` | Set monthly budget |
 | `donisfinance:budget-status` | Show budget vs actual |
 | `donisfinance:budget-check` | Preview if transaction fits budget |

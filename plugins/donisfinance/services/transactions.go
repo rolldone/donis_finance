@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"log"
 	"time"
 
 	"go_framework/plugins/donisfinance/models"
@@ -555,6 +556,54 @@ func ListAccounts(db *gorm.DB, memberID string) ([]AccountResult, error) {
 		return nil, err
 	}
 	return results, nil
+}
+
+// ─── Balance Adjustment ────────────────────────────────────────────────────────
+
+// AdjustBalance manually updates an account balance and records an audit trail.
+func AdjustBalance(db *gorm.DB, accountID string, newBalance int64, reason string) (*AccountResult, error) {
+	if reason == "" {
+		return nil, fmt.Errorf("reason is required")
+	}
+
+	var a models.Account
+	if err := db.First(&a, "id = ?", accountID).Error; err != nil {
+		return nil, fmt.Errorf("account not found")
+	}
+
+	oldBalance := a.Balance
+	if oldBalance == newBalance {
+		return &AccountResult{
+			ID:       a.ID,
+			MemberID: a.MemberID,
+			Name:     a.Name,
+			Type:     a.Type,
+			Balance:  a.Balance,
+		}, nil
+	}
+
+	if err := db.Model(&a).Update("balance", newBalance).Error; err != nil {
+		return nil, fmt.Errorf("update balance: %w", err)
+	}
+
+	// Record audit trail
+	adj := models.BalanceAdjustment{
+		AccountID:  accountID,
+		OldBalance: oldBalance,
+		NewBalance: newBalance,
+		Reason:     reason,
+	}
+	if err := db.Create(&adj).Error; err != nil {
+		log.Printf("[donisfinance] warning: failed to record balance adjustment audit: %v", err)
+	}
+
+	return &AccountResult{
+		ID:       a.ID,
+		MemberID: a.MemberID,
+		Name:     a.Name,
+		Type:     a.Type,
+		Balance:  newBalance,
+	}, nil
 }
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────

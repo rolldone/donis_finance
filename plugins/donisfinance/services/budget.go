@@ -22,11 +22,11 @@ type BudgetResult struct {
 // BudgetStatus shows budget limit vs actual spending.
 type BudgetStatus struct {
 	BudgetResult
-	CategoryName string `json:"category_name"`
+	CategoryName  string `json:"category_name"`
 	CategoryColor string `json:"category_color"`
-	Spent       int64  `json:"spent"`
-	Remaining   int64  `json:"remaining"`
-	Percentage  int    `json:"percentage"` // 0-100
+	Spent         int64  `json:"spent"`
+	Remaining     int64  `json:"remaining"`
+	Percentage    int    `json:"percentage"` // 0-100
 }
 
 // ─── Operations ───────────────────────────────────────────────────────────────

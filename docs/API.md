@@ -587,6 +587,33 @@ Create an account.
 }
 ```
 
+#### PUT `/api/member/accounts/:id`
+
+Update an account (partial update). Fully backward compatible — existing clients without `balance`/`balance_reason` work unchanged.
+
+**Request:**
+```json
+{
+  "name": "My Cash Updated",
+  "type": "savings"
+}
+```
+
+With balance adjustment (requires `balance_reason`):
+```json
+{
+  "balance": 5000000,
+  "balance_reason": "Reconcile bank statement 18 Juli"
+}
+```
+
+| Field | Wajib | Deskripsi |
+|-------|-------|-----------|
+| `name` | ❌ | Nama baru akun |
+| `type` | ❌ | Tipe baru (`cash`/`bank`/`e_wallet`/`savings`/`investment`) |
+| `balance` | ❌ | Saldo baru langsung (reconcile). Dicatat di `balance_adjustments` audit trail |
+| `balance_reason` | ❌ | **Wajib** jika `balance` diisi. Alasan perubahan saldo |
+
 #### POST `/api/member/transactions`
 
 Create a transaction.

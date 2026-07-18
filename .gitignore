@@ -8,6 +8,7 @@
 *.so
 *.dylib
 server
+console
 b
 bin/
 run_server

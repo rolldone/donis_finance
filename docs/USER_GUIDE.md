@@ -465,6 +465,38 @@ a1b2c3d4-...                           budi                 {{ADMIN_EMAIL}}
 ./console donisfinance:tx-delete --id <transaction-id>
 ```
 
+### Edit Transaksi
+
+Mengedit transaksi yang sudah ada (partial update — cukup isi field yang ingin diubah):
+
+```bash
+# Edit nominal dan deskripsi
+./console donisfinance:tx-edit \
+  --id <transaction-id> \
+  --amount 750000 \
+  --desc "Makan malam"
+
+# Ganti kategori
+./console donisfinance:tx-edit \
+  --id <transaction-id> \
+  --category "Transport"
+
+# Ganti akun
+./console donisfinance:tx-edit \
+  --id <transaction-id> \
+  --account "Cash"
+```
+
+| Flag | Wajib | Keterangan |
+|------|-------|-----------|
+| `-i, --id` | ✅ | ID transaksi |
+| `-a, --amount` | ❌ | Jumlah baru (Rupiah) |
+| `-c, --category` | ❌ | Nama kategori baru |
+| `-k, --account` | ❌ | Nama akun baru |
+| `-t, --type` | ❌ | Tipe baru (`income`/`expense`/`transfer`) |
+| `-d, --desc` | ❌ | Deskripsi baru |
+| `-D, --date` | ❌ | Tanggal baru (YYYY-MM-DD) |
+
 ### Transfer Antar Akun
 
 ```bash
@@ -519,6 +551,34 @@ Category                  Amount Count
 
 File CSV akan berisi kolom: Date, Type, Category, Amount, Description, Notes.
 
+### Import dari CSV (BCA/BLU)
+
+Import transaksi dari file CSV hasil export dari mobile banking BCA atau BLU:
+
+```bash
+./console donisfinance:tx-import \
+  --member istri \
+  --file mutasi_bca.csv
+```
+
+| Flag | Wajib | Keterangan |
+|------|-------|-----------|
+| `-m, --member` | ✅ | Username member tujuan |
+| `-f, --file` | ✅ | Path ke file CSV |
+| `-F, --format` | ❌ | Format CSV: `bca` (default) atau `blu` |
+
+**Format CSV yang didukung:**
+```
+Date, Remarks, Amount, Type, Balance
+18/07/2026, TRF FROM BUDI, 500.000,00, CR, 10.000.000,00
+18/07/2026, GOFOOD, 25.000,00, DB, 9.975.000,00
+```
+
+- **Type**: `CR` = pemasukan, `DB` = pengeluaran
+- **Kategori**: otomatis terdeteksi dari kata kunci di kolom Remarks (misal "GOFOOD" → Makanan, "PERTAMINA" → Transport, "GAJI" → Gaji)
+- **Duplikat**: otomatis skip jika tanggal + nominal + deskripsi sudah ada
+- **Saldo awal**: jika member belum punya akun, akan dibuat otomatis
+
 ---
 
 ## 🏦 Akun
@@ -553,6 +613,57 @@ ID                                     Name                 Type           Balan
 a1b2c3d4-...                           BCA                  bank        Rp10000000
 e5f6g7h8-...                           Cash                 cash         Rp2500000
 ```
+
+### Update Akun
+
+Mengubah nama, tipe, dan/atau saldo akun (semua optional, minimal 1):
+
+```bash
+# Ganti nama akun
+./console donisfinance:account-update \
+  --member istri \
+  --account "BCA" \
+  --name "BCA - 7670339836"
+
+# Ganti tipe
+./console donisfinance:account-update \
+  --member istri \
+  --account "BCA" \
+  --type savings
+
+# Set saldo langsung (reconcile) — dicatat di audit trail
+./console donisfinance:account-update \
+  --member istri \
+  --account "BCA" \
+  --balance 44800000 \
+  --reason "Reconcile bank statement 18 Juli"
+```
+
+| Flag | Wajib | Keterangan |
+|------|-------|-----------|
+| `-m, --member` | ✅ | Username member |
+| `-a, --account` | ✅ | Nama akun saat ini |
+| `-n, --name` | ❌ | Nama baru akun |
+| `-t, --type` | ❌ | Tipe baru (`cash`/`bank`/`e_wallet`/`savings`/`investment`) |
+| `-b, --balance` | ❌ | Saldo baru (langsung, tanpa transaksi) |
+| `-r, --reason` | ❌ | Alasan perubahan saldo (**wajib** jika pakai `--balance`) |
+
+### Adjust Saldo (dengan Audit Trail)
+
+Alternatif khusus untuk menyesuaikan saldo — wajib menyertakan alasan:
+
+```bash
+./console donisfinance:account-adjust \
+  --member istri \
+  --account "BCA" \
+  --balance 44800000 \
+  --reason "Reconcile bank statement 18 Juli 2026"
+```
+
+Perbedaan dengan `account-update --balance`:
+- `account-adjust` **wajib** `--reason`
+- `account-adjust` **hanya** mengubah saldo (tidak bisa rename/type)
+- Keduanya sama-sama mencatat audit trail di tabel `balance_adjustments`
 
 ---
 
@@ -716,17 +827,34 @@ cd /app
   --member sari --type expense --amount 350000 \
   --category "Makan" --account "Cash" --desc "Groceries"
 
-# 7. Lihat ringkasan
+# 7. Edit transaksi
+./console donisfinance:tx-edit \
+  --id <transaction-id> --amount 400000 --desc "Makan malam"
+
+# 8. Import dari CSV (BCA)
+./console donisfinance:tx-import \
+  --member sari --file mutasi_bca.csv
+
+# 9. Lihat ringkasan
 ./console donisfinance:tx-summary --member sari --month 7 --year 2026
 
-# 8. Cek budget
+# 10. Cek budget
 ./console donisfinance:budget-status --member sari --month 7 --year 2026
 
-# 9. Export laporan
+# 11. Update nama akun
+./console donisfinance:account-update \
+  --member sari --account "BCA" --name "BCA - 7670339836"
+
+# 12. Adjust saldo (reconcile)
+./console donisfinance:account-adjust \
+  --member sari --account "Cash" --balance 1500000 \
+  --reason "Adjust saldo akhir"
+
+# 13. Export laporan
 ./console donisfinance:tx-export \
   --member sari --month 7 --year 2026 --file laporan_sari.csv
 
-# 10. Kirim email laporan
+# 14. Kirim email laporan
 ./console donisfinance:send-report \
   --member sari --to {{MEMBER_EMAIL}} --month 7 --year 2026
 ```

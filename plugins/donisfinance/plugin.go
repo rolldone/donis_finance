@@ -44,10 +44,11 @@ func (p *Plugin) RegisterServices(deps plugins.ServiceDeps) error {
 		&models.Transaction{},
 		&models.Budget{},
 		&models.Setting{},
+		&models.BalanceAdjustment{},
 	); err != nil {
 		return err
 	}
-	log.Println("[donisfinance] tables migrated: admins, members, categories, accounts, transactions, budgets, settings")
+	log.Println("[donisfinance] tables migrated: admins, members, categories, accounts, transactions, budgets, settings, balance_adjustments")
 	return nil
 }
 

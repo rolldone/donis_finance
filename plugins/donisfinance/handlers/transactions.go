@@ -433,7 +433,7 @@ func (h *TransactionHandler) UpdateAccount(c *gin.Context) {
 		return
 	}
 
-	result, err := services.UpdateAccount(h.db, id, userID, req.Name, req.Type)
+	result, err := services.UpdateAccount(h.db, id, userID, req.Name, req.Type, nil, "")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

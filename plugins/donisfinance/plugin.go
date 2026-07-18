@@ -154,6 +154,7 @@ func (p *Plugin) RegisterRoutes(router *gin.Engine, admin *gin.RouterGroup, api 
 		mem.GET("/transactions/:id/attachment", txH.GetAttachment)
 		mem.POST("/budgets", budgetH.SetBudget)
 		mem.GET("/budgets/status", budgetH.GetBudgetStatus)
+		mem.DELETE("/budgets/:id", budgetH.DeleteMemberBudget)
 	}
 
 	_ = admin // admin group not used directly, all routes go through /api

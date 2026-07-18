@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getBudgetStatus, getCategories, setBudget } from '../../api'
+import { getBudgetStatus, getCategories, setBudget, deleteMemberBudget } from '../../api'
 import Drawer from '../../components/Drawer'
 import Skeleton from '../../components/Skeleton'
 
@@ -27,6 +27,10 @@ export default function Budget() {
   const [categories, setCategories] = useState<any[]>([])
   const [form, setForm] = useState({ category_id: '', amount: '' })
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  // Edit mode — when editing, stores the budget id being edited
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const fetchBudgets = async () => {
     try {
@@ -42,7 +46,14 @@ export default function Budget() {
 
   useEffect(() => { fetchBudgets() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openForm = async () => {
+  const openForm = async (budget?: any) => {
+    if (budget) {
+      setEditingId(budget.id)
+      setForm({ category_id: budget.category_id || '', amount: String(budget.amount || '') })
+    } else {
+      setEditingId(null)
+      setForm({ category_id: '', amount: '' })
+    }
     setFormOpen(true)
     try {
       const res = await getCategories('expense')
@@ -63,12 +74,26 @@ export default function Budget() {
         year,
       })
       setFormOpen(false)
+      setEditingId(null)
       setForm({ category_id: '', amount: '' })
       await fetchBudgets()
     } catch (err: any) {
       alert(t('common.error_save') + ': ' + err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('budget.confirm_delete') || 'Hapus budget ini?')) return
+    setDeleting(id)
+    try {
+      await deleteMemberBudget(id)
+      await fetchBudgets()
+    } catch (err: any) {
+      alert(t('common.error_save') + ': ' + err.message)
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -144,11 +169,28 @@ export default function Budget() {
                   <span className="text-xl">🎯</span>
                   <h3 className="text-sm font-semibold text-gray-900">{budget.category_name || t('common.without_category')}</h3>
                 </div>
-                {isOver && (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs font-medium rounded-full">
-                    {t('budget.over')}
-                  </span>
-                )}
+                <div className="flex items-center gap-1">
+                  {isOver && (
+                    <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs font-medium rounded-full">
+                      {t('budget.over')}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => openForm(budget)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                    title={t('common.edit')}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDelete(budget.id)}
+                    disabled={deleting === budget.id}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition disabled:opacity-50"
+                    title={t('common.delete')}
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
 
               {/* Progress bar */}
@@ -203,7 +245,7 @@ export default function Budget() {
       </div>
 
       {/* Drawer tambah budget */}
-      <Drawer open={formOpen} onClose={() => setFormOpen(false)} title={t('budget.add_title')}>
+      <Drawer open={formOpen} onClose={() => { setFormOpen(false); setEditingId(null); }} title={editingId ? t('budget.edit_title') : t('budget.add_title')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1.5">{t('budget.category')}</label>

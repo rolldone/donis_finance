@@ -171,3 +171,15 @@ func DeleteBudget(db *gorm.DB, id string) error {
 	}
 	return nil
 }
+
+// DeleteMemberBudget removes a budget by ID, but only if it belongs to the given member.
+func DeleteMemberBudget(db *gorm.DB, id, memberID string) error {
+	r := db.Exec("DELETE FROM budgets WHERE id = ? AND member_id = ?", id, memberID)
+	if r.Error != nil {
+		return r.Error
+	}
+	if r.RowsAffected == 0 {
+		return fmt.Errorf("budget not found")
+	}
+	return nil
+}

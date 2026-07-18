@@ -90,10 +90,22 @@ func (h *BudgetHandler) GetBudgetStatus(c *gin.Context) {
 }
 
 // DeleteBudget godoc
-// DELETE /admin/plugins/donisfinance/budgets/:id
+// DELETE /api/admin/budgets/:id
 func (h *BudgetHandler) DeleteBudget(c *gin.Context) {
 	id := c.Param("id")
 	if err := services.DeleteBudget(h.db, id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+}
+
+// DeleteMemberBudget godoc
+// DELETE /api/member/budgets/:id
+func (h *BudgetHandler) DeleteMemberBudget(c *gin.Context) {
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+	if err := services.DeleteMemberBudget(h.db, id, userID); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}

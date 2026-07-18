@@ -338,6 +338,10 @@ export function deleteAdminBudget(id: string) {
   return request('DELETE', `/api/admin/budgets/${id}`)
 }
 
+export function deleteMemberBudget(id: string) {
+  return request('DELETE', `/api/member/budgets/${id}`)
+}
+
 // ─── Members (Admin) ──────────────────────────────────────────────────────────
 
 export function getMembers() {

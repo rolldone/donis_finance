@@ -419,7 +419,8 @@ func GetMonthlySummary(db *gorm.DB, memberID string, year, month int) (*MonthlyS
 		        SUM(transactions.amount) as total,
 		        COUNT(*) as count`).
 		Joins("LEFT JOIN categories ON categories.id = transactions.category_id").
-		Where("EXTRACT(YEAR FROM transactions.date) = ? AND EXTRACT(MONTH FROM transactions.date) = ?", year, month)
+		Where("EXTRACT(YEAR FROM transactions.date) = ? AND EXTRACT(MONTH FROM transactions.date) = ?", year, month).
+		Where("transactions.type != 'transfer'") // exclude transfers from summary
 
 	if memberID != "" {
 		q = q.Where("transactions.member_id = ?", memberID)

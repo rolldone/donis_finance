@@ -133,9 +133,19 @@ func CheckBudgetSpending(db *gorm.DB, memberID, categoryID string, month, year i
 		Amount int64
 	}
 	var row BudgetRow
-	err := db.Table("budgets").Select("id, amount").
-		Where("member_id = ? AND (category_id = ? OR (category_id IS NULL AND ? IS NULL)) AND month = ? AND year = ?",
-			memberID, categoryID, categoryID, month, year).Scan(&row).Error
+	var err error
+
+	// Split query to avoid PostgreSQL "could not determine data type of parameter $3"
+	// when categoryID is empty string (NULL vs '' ambiguity in GORM binding).
+	if categoryID == "" {
+		err = db.Table("budgets").Select("id, amount").
+			Where("member_id = ? AND category_id IS NULL AND month = ? AND year = ?",
+				memberID, month, year).Scan(&row).Error
+	} else {
+		err = db.Table("budgets").Select("id, amount").
+			Where("member_id = ? AND category_id = ? AND month = ? AND year = ?",
+				memberID, categoryID, month, year).Scan(&row).Error
+	}
 	if err != nil || row.ID == "" {
 		return "", 0, false, nil // No budget set = no warning
 	}

@@ -249,13 +249,16 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	userID := c.GetString("user_id")
 	role := c.GetString("user_type")
 
-	// Get attachment path and member_id before deleting
+	// Get full transaction data before deleting (need it for balance reversal)
 	var tx struct {
 		MemberID       string
+		AccountID      *string
+		ToAccountID    *string
+		Amount         int64
+		Type           string
 		AttachmentPath string
 	}
-	h.db.Table("transactions").Select("member_id, attachment_path").Where("id = ?", id).Scan(&tx)
-	if tx.MemberID == "" {
+	if err := h.db.Table("transactions").Select("member_id, account_id, to_account_id, amount, type, attachment_path").Where("id = ?", id).Scan(&tx).Error; err != nil || tx.MemberID == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 		return
 	}
@@ -263,6 +266,29 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	if role == "member" && tx.MemberID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "not your transaction"})
 		return
+	}
+
+	// Reverse balance before deleting (opposite of what CreateTransaction did)
+	switch tx.Type {
+	case "income":
+		if tx.AccountID != nil && *tx.AccountID != "" {
+			h.db.Table("accounts").Where("id = ?", *tx.AccountID).
+				Update("balance", gorm.Expr("balance - ?", tx.Amount))
+		}
+	case "expense":
+		if tx.AccountID != nil && *tx.AccountID != "" {
+			h.db.Table("accounts").Where("id = ?", *tx.AccountID).
+				Update("balance", gorm.Expr("balance + ?", tx.Amount))
+		}
+	case "transfer":
+		if tx.AccountID != nil && *tx.AccountID != "" {
+			h.db.Table("accounts").Where("id = ?", *tx.AccountID).
+				Update("balance", gorm.Expr("balance + ?", tx.Amount))
+		}
+		if tx.ToAccountID != nil && *tx.ToAccountID != "" {
+			h.db.Table("accounts").Where("id = ?", *tx.ToAccountID).
+				Update("balance", gorm.Expr("balance - ?", tx.Amount))
+		}
 	}
 
 	if err := services.DeleteTransaction(h.db, id); err != nil {

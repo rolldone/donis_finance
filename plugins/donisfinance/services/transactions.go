@@ -164,6 +164,12 @@ func CreateTransaction(db *gorm.DB, memberID string, accountID, categoryID, toAc
 			} else if remaining < amount {
 				result.BudgetWarning = fmt.Sprintf("⚠️ Sisa budget: Rp%d", remaining)
 			}
+		} else {
+			// Auto-create budget for new category (first expense = budget limit)
+			_, err := SetBudget(db, tx.MemberID, categoryID, int(month.Month()), month.Year(), amount)
+			if err != nil {
+				log.Printf("[auto-budget] failed to auto-create budget for category %s: %v", *categoryID, err)
+			}
 		}
 	}
 
@@ -290,6 +296,7 @@ func UpdateTransaction(db *gorm.DB, id, memberID, role string, req struct {
 		return nil, fmt.Errorf("not your transaction")
 	}
 
+	// ── VALIDATE BEFORE TOUCHING BALANCES ──
 	if req.Amount <= 0 {
 		return nil, fmt.Errorf("amount must be positive")
 	}
@@ -297,34 +304,35 @@ func UpdateTransaction(db *gorm.DB, id, memberID, role string, req struct {
 		return nil, fmt.Errorf("type must be income, expense, or transfer")
 	}
 
-	// Balance: reverse old effect
-	reverseBalance := func(tType string, amount int64, acctID, toAcctID *string) {
-		switch tType {
-		case "income":
-			if acctID != nil && *acctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *acctID).
-					Update("balance", gorm.Expr("balance - ?", amount))
-			}
-		case "expense":
-			if acctID != nil && *acctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *acctID).
-					Update("balance", gorm.Expr("balance + ?", amount))
-			}
-		case "transfer":
-			if acctID != nil && *acctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *acctID).
-					Update("balance", gorm.Expr("balance + ?", amount))
-			}
-			if toAcctID != nil && *toAcctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *toAcctID).
-					Update("balance", gorm.Expr("balance - ?", amount))
-			}
+	// For transfers, require to_account_id
+	if req.Type == "transfer" {
+		if req.ToAccountID == "" {
+			return nil, fmt.Errorf("to_account_id is required for transfer")
+		}
+		if req.AccountID != "" && req.AccountID == req.ToAccountID {
+			return nil, fmt.Errorf("source and destination accounts must be different")
 		}
 	}
 
-	reverseBalance(tx.Type, tx.Amount, tx.AccountID, tx.ToAccountID)
+	// Validate category if provided
+	if req.CategoryID != "" {
+		var cat models.Category
+		if err := db.First(&cat, "id = ?", req.CategoryID).Error; err != nil {
+			return nil, fmt.Errorf("category not found")
+		}
+		if req.Type != cat.Type && req.Type != "transfer" {
+			return nil, fmt.Errorf("category type %s does not match transaction type %s", cat.Type, req.Type)
+		}
+	}
 
-	// Apply new values
+	// Validate date
+	if req.Date == "" {
+		req.Date = time.Now().Format("2006-01-02")
+	} else if _, err := time.Parse("2006-01-02", req.Date); err != nil {
+		return nil, fmt.Errorf("invalid date format, use YYYY-MM-DD")
+	}
+
+	// Build pointer fields
 	var newAcctID, newToAcctID, newCatID *string
 	if req.AccountID != "" {
 		newAcctID = &req.AccountID
@@ -334,12 +342,6 @@ func UpdateTransaction(db *gorm.DB, id, memberID, role string, req struct {
 	}
 	if req.CategoryID != "" {
 		newCatID = &req.CategoryID
-	}
-
-	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
-	} else if _, err := time.Parse("2006-01-02", req.Date); err != nil {
-		return nil, fmt.Errorf("invalid date format, use YYYY-MM-DD")
 	}
 
 	updates := map[string]interface{}{
@@ -353,36 +355,25 @@ func UpdateTransaction(db *gorm.DB, id, memberID, role string, req struct {
 		"date":          req.Date,
 	}
 
-	if err := db.Model(&tx).Updates(updates).Error; err != nil {
+	// ── WRAP REVERSE + UPDATE + APPLY IN DB TRANSACTION ──
+	err := db.Transaction(func(txDB *gorm.DB) error {
+		// Reverse old balance effect using transactional DB
+		reverseBalanceTx(txDB, tx.Type, tx.Amount, tx.AccountID, tx.ToAccountID)
+
+		// Update transaction record
+		if err := txDB.Model(&tx).Updates(updates).Error; err != nil {
+			return err // triggers auto-rollback → balance unchanged
+		}
+
+		// Apply new balance effect using transactional DB
+		applyBalanceTx(txDB, req.Type, req.Amount, newAcctID, newToAcctID)
+
+		return nil
+	})
+
+	if err != nil {
 		return nil, fmt.Errorf("update transaction: %w", err)
 	}
-
-	// Re-apply balance with new values
-	applyBalance := func(tType string, amount int64, acctID, toAcctID *string) {
-		switch tType {
-		case "income":
-			if acctID != nil && *acctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *acctID).
-					Update("balance", gorm.Expr("balance + ?", amount))
-			}
-		case "expense":
-			if acctID != nil && *acctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *acctID).
-					Update("balance", gorm.Expr("balance - ?", amount))
-			}
-		case "transfer":
-			if acctID != nil && *acctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *acctID).
-					Update("balance", gorm.Expr("balance - ?", amount))
-			}
-			if toAcctID != nil && *toAcctID != "" {
-				db.Model(&models.Account{}).Where("id = ?", *toAcctID).
-					Update("balance", gorm.Expr("balance + ?", amount))
-			}
-		}
-	}
-
-	applyBalance(req.Type, req.Amount, newAcctID, newToAcctID)
 
 	return &TransactionResult{
 		ID:          tx.ID,
@@ -396,6 +387,56 @@ func UpdateTransaction(db *gorm.DB, id, memberID, role string, req struct {
 		Notes:       req.Notes,
 		Date:        req.Date,
 	}, nil
+}
+
+// reverseBalanceTx reverses a transaction's balance effect using the given DB (supports transactional).
+func reverseBalanceTx(txDB *gorm.DB, tType string, amount int64, acctID, toAcctID *string) {
+	switch tType {
+	case "income":
+		if acctID != nil && *acctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *acctID).
+				Update("balance", gorm.Expr("balance - ?", amount))
+		}
+	case "expense":
+		if acctID != nil && *acctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *acctID).
+				Update("balance", gorm.Expr("balance + ?", amount))
+		}
+	case "transfer":
+		if acctID != nil && *acctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *acctID).
+				Update("balance", gorm.Expr("balance + ?", amount))
+		}
+		if toAcctID != nil && *toAcctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *toAcctID).
+				Update("balance", gorm.Expr("balance - ?", amount))
+		}
+	}
+}
+
+// applyBalanceTx applies a transaction's balance effect using the given DB (supports transactional).
+func applyBalanceTx(txDB *gorm.DB, tType string, amount int64, acctID, toAcctID *string) {
+	switch tType {
+	case "income":
+		if acctID != nil && *acctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *acctID).
+				Update("balance", gorm.Expr("balance + ?", amount))
+		}
+	case "expense":
+		if acctID != nil && *acctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *acctID).
+				Update("balance", gorm.Expr("balance - ?", amount))
+		}
+	case "transfer":
+		if acctID != nil && *acctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *acctID).
+				Update("balance", gorm.Expr("balance - ?", amount))
+		}
+		if toAcctID != nil && *toAcctID != "" {
+			txDB.Model(&models.Account{}).Where("id = ?", *toAcctID).
+				Update("balance", gorm.Expr("balance + ?", amount))
+		}
+	}
 }
 
 // DeleteTransaction removes a transaction by ID (admin only).

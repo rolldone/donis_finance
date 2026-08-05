@@ -372,6 +372,8 @@ Create a category.
 }
 ```
 
+> **Duplicate Check:** Jika nama + type sudah ada, return `409 Conflict` dengan `existing_id`. Ini adalah soft check — jika kategori sudah dihapus, nama yang sama bisa dibuat ulang.
+
 #### PUT `/api/admin/categories/:id`
 
 Update a category.

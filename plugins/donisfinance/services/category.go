@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"go_framework/plugins/donisfinance/models"
@@ -16,6 +17,13 @@ func CreateCategory(db *gorm.DB, name, catType, icon, color string) (*CategoryRe
 	}
 	if catType != "income" && catType != "expense" {
 		return nil, errors.New("type must be 'income' or 'expense'")
+	}
+
+	// Duplicate check: same name + type = rejected (soft check, not DB constraint)
+	// This allows re-creating a category with the same name after deletion.
+	var existing models.Category
+	if err := db.Where("name = ? AND type = ?", name, catType).First(&existing).Error; err == nil {
+		return nil, fmt.Errorf("kategori dengan nama ini sudah ada (id: %s)", existing.ID)
 	}
 
 	cat := models.Category{

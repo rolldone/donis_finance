@@ -1,6 +1,6 @@
-// @title Umahstore Admin API
+// @title Donisgo API
 // @version 1.0
-// @description Admin API for Umahstore - auto-generated swagger docs
+// @description Admin API for donisgo - auto-generated swagger docs
 // @termsOfService http://example.com/terms/
 // @contact.name API Support
 // @contact.url http://www.example.com/support
@@ -15,9 +15,9 @@ import (
 	"log"
 	"syscall"
 
-	"go_framework/internal/app"
-	"go_framework/internal/plugins"
-	donisfinance "go_framework/plugins/donisfinance"
+	"github.com/rolldone/donisgo/internal/app"
+	"github.com/rolldone/donisgo/internal/plugins"
+	donisfinance "github.com/rolldone/donisgo/plugins/donisfinance"
 )
 
 // main is a thin entrypoint; core boot logic lives in internal/app.

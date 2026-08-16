@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"go_framework/internal/storage"
-	"go_framework/internal/uuid"
-	"go_framework/plugins/donisfinance/services"
+	"github.com/rolldone/donisgo/internal/storage"
+	"github.com/rolldone/donisgo/internal/uuid"
+	"github.com/rolldone/donisgo/plugins/donisfinance/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

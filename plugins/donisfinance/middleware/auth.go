@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go_framework/internal/auth"
+	"github.com/rolldone/donisgo/internal/auth"
 
 	"github.com/gin-gonic/gin"
 )

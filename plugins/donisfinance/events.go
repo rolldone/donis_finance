@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"go_framework/internal/events"
+	"github.com/rolldone/donisgo/internal/events"
 )
 
 // registerEventHandlers registers example event handlers for the plugin.

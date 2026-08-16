@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 
-	"go_framework/plugins/donisfinance/models"
+	"github.com/rolldone/donisgo/plugins/donisfinance/models"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"

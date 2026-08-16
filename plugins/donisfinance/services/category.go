@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"go_framework/plugins/donisfinance/models"
+	"github.com/rolldone/donisgo/plugins/donisfinance/models"
 
 	"gorm.io/gorm"
 )

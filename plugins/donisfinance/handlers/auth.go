@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"go_framework/plugins/donisfinance/services"
+	"github.com/rolldone/donisgo/plugins/donisfinance/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

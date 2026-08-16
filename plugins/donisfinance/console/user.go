@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"go_framework/internal/db"
-	"go_framework/plugins/donisfinance/services"
+	"github.com/rolldone/donisgo/internal/db"
+	"github.com/rolldone/donisgo/plugins/donisfinance/services"
 
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"

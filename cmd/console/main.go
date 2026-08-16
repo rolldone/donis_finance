@@ -3,9 +3,9 @@ package main
 import (
 	"syscall"
 
-	"go_framework/internal/console"
-	"go_framework/internal/plugins"
-	donisfinance "go_framework/plugins/donisfinance"
+	"github.com/rolldone/donisgo/internal/console"
+	"github.com/rolldone/donisgo/internal/plugins"
+	donisfinance "github.com/rolldone/donisgo/plugins/donisfinance"
 )
 
 func main() {

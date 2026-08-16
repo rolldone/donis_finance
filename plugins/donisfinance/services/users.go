@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"go_framework/internal/auth"
-	"go_framework/internal/keydb"
-	"go_framework/internal/mail"
-	"go_framework/internal/uuid"
+	"github.com/rolldone/donisgo/internal/auth"
+	"github.com/rolldone/donisgo/internal/keydb"
+	"github.com/rolldone/donisgo/internal/mail"
+	"github.com/rolldone/donisgo/internal/uuid"
 
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"

@@ -1,10 +1,10 @@
 package pluginloader
 
 import (
-	"go_framework/internal/plugins"
+	"github.com/rolldone/donisgo/internal/plugins"
 )
 
-// RegisterCorePlugins registers the set of core plugins supported by Umahstore.
+// RegisterCorePlugins registers the set of core plugins supported by donisgo.
 func RegisterCorePlugins() {
 	plugins.RegisterPlugins([]plugins.Plugin{
 		// Add core plugins here
